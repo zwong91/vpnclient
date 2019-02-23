@@ -2,33 +2,10 @@
 //
 //////////////////////////////////////////////////////////////////////
 
-/*******************************************************************************
- *                                                                             *
- *  This file is part of VPNDialer.                                            *
- *                                                                             *
- *  VPNDialer is free software; you can redistribute it and/or modify          *
- *  it under the terms of the GNU General Public License as published by       *
- *  the Free Software Foundation; either version 2 of the License, or          *
- *  (at your option) any later version.                                        *
- *                                                                             *
- *  VPNDialer is distributed in the hope that it will be useful,               *
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of             *
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the              *
- *  GNU General Public License for more details.                               *
- *                                                                             *
- *  You should have received a copy of the GNU General Public License          *
- *  along with VPNDialer; if not, write to the Free Software                   *
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA  *
- *                                                                             *
- *  Copyright (c) 2003 Evidian GmbH, written by Thomas Kriener                 *
- *                                                                             *
- *******************************************************************************/
-
 #include "stdafx.h"
-#include "VPNDialer.h"
+//#include "VPNDlg.h"
 #include "VPNConfig.h"
 #include "VPNSession.h"
-#include "SelectInterfaceDialog.h"
 
 #include <conio.h>
 #include <winsock2.h>
@@ -659,11 +636,11 @@ int CVPNConfig::ActivateIPSec(int actConfig, const CString& myIP, CString& log)
 		if(myIPs.GetSize()>1)
 		{
 			// Select Interface to use for Tunnel
-			CSelectInterfaceDialog dlg;
-			dlg.m_interfaces=&myIPs;
-			dlg.DoModal();
-			myNet.Format("%s/255.255.255.255",myIPs[dlg.m_selectedInterface]);
-			myTunIP=myIPs[dlg.m_selectedInterface];
+			//CSelectInterfaceDialog dlg;
+			//dlg.m_interfaces=&myIPs;
+			//dlg.DoModal();
+			//myNet.Format("%s/255.255.255.255",myIPs[dlg.m_selectedInterface]);
+			//myTunIP=myIPs[dlg.m_selectedInterface];
 		}
 		else
 		{
@@ -1038,8 +1015,8 @@ int CVPNConfig::ExecuteCmd(const CString &cmd, CString& output, BOOL wait)
                         &pi )    // Pointer to PROCESS_INFORMATION structure.
 	  ) 
 	{
-		temp.Format(IDS_ERROREXECUTE,cmd);
-		AfxMessageBox(temp,MB_OK|MB_ICONERROR);
+		//temp.Format(IDS_ERROREXECUTE,cmd);
+		//AfxMessageBox(temp,MB_OK|MB_ICONERROR);
 	    getch();
 		CloseHandle(newstdin);
 		CloseHandle(newstdout);

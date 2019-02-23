@@ -61,6 +61,7 @@ public:
 	int Del(int rowid);
 	//≈‰÷√ ˝æ›
 	bool VpnWebConfig();
+
 	afx_msg void OnBnClickedMfclink1();
 	afx_msg void OnBnClickedButton1();
 	CComboBox m_ip;

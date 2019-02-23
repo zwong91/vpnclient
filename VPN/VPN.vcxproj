@@ -123,7 +123,9 @@
     <ClInclude Include="TrayIcon.h" />
     <ClInclude Include="Util.h" />
     <ClInclude Include="VPN.h" />
+    <ClInclude Include="VPNConfig.h" />
     <ClInclude Include="VPNDlg.h" />
+    <ClInclude Include="VPNSession.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CppSQLite3.cpp" />
@@ -138,7 +140,9 @@
     <ClCompile Include="TrayIcon.cpp" />
     <ClCompile Include="Util.cpp" />
     <ClCompile Include="VPN.cpp" />
+    <ClCompile Include="VPNConfig.cpp" />
     <ClCompile Include="VPNDlg.cpp" />
+    <ClCompile Include="VPNSession.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="vpn.rc" />
