@@ -1,2 +1,2 @@
 # vpnclient
-vpn client build on vs2017
+Windows vpn client build on vs2017
