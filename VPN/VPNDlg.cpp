@@ -93,7 +93,8 @@ void CvpnDlg::DoDataExchange(CDataExchange* pDX)
 	//	DDX_Control(pDX, IDCLOSE, m_ctrlpic);
 	//  DDX_Control(pDX, IDC_CHECK1, m_remember);
 	//  DDX_Control(pDX, IDC_BUTTON1, m_btnLogin);
-	DDX_Control(pDX, IDC_COMBO, m_ip);
+	DDX_Control(pDX, IDC_LIST2, m_list);
+	DDX_Text(pDX, IDC_EDIT1, m_ip);
 	DDX_Text(pDX, IDC_EDIT2, m_username);
 	DDX_Text(pDX, IDC_EDIT3, m_password);
 	//  DDX_Check(pDX, IDC_CHECK1, m_remember);
@@ -109,6 +110,7 @@ BEGIN_MESSAGE_MAP(CvpnDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_BUTTON2, &CvpnDlg::OnBnClickedButton2)
 	ON_MESSAGE(WM_ICON_NOTIFY, &CvpnDlg::OnTrayNotification)
 	ON_CBN_SELCHANGE(IDC_COMBO, &CvpnDlg::OnCbnSelchangeCombo)
+	ON_NOTIFY(NM_CLICK, IDC_LIST2, &CvpnDlg::OnNMClickList2)
 END_MESSAGE_MAP()
 
 
@@ -120,6 +122,9 @@ void ctow(wchar_t* wchar, const char *str)
 	::MultiByteToWideChar(CP_ACP, NULL, str, strlen(str), wchar, wcslen);
 	wchar[wcslen] = 0;
 }
+
+CListCtrl *staticlist = NULL;
+CMap<int, int, VpnInfo*, VpnInfo*> infos;
 
 BOOL CvpnDlg::OnInitDialog()
 {
@@ -153,17 +158,28 @@ BOOL CvpnDlg::OnInitDialog()
 	//加载界面皮肤
 	SkinH_Attach();
 
-	InitData();
-	m_ip.ResetContent();
+
+	//获取窗口风格;
+	LONG lStyle = GetWindowLong(this->m_list.m_hWnd, GWL_STYLE);
+	//设置窗口风格;
+	SetWindowLong(this->m_list.m_hWnd, GWL_STYLE, lStyle | LVS_REPORT);
+	//网格线;整行选中;
+	this->m_list.SetExtendedStyle(LVS_EX_GRIDLINES | LVS_EX_FULLROWSELECT);
+
+	this->m_list.InsertColumn(0, _T("编号"), 0, 50, -1);
+	this->m_list.InsertColumn(1, _T("IP地址"), 0, 130, -1);
+	this->m_list.InsertColumn(2, _T("地理位置"), 0, 130, -1);
+	this->m_list.InsertColumn(3, _T("延迟"), 0, 50, -1);
+	this->m_list.InsertColumn(4, _T("备注"), 0, 150, -1);
+
+	staticlist = &this->m_list;
+
+	m_ip = _T("");
 	m_username = _T("");
 	m_password = _T("");
-	//配置文件
-	configFile = "config.ini";
-	//填充账户
-	ReadConfig(configFile);
 
-	SetDlgItemText(IDC_EDIT2, m_username);
-	SetDlgItemText(IDC_EDIT3, m_password);
+	//填充账户
+	InitData();
 
 	::GetCurrentDirectory(MAX_PATH - 1, m_szConfigFile);
 	_tcscat(m_szConfigFile, TEXT("\\Parameter.ini"));
@@ -198,6 +214,17 @@ void CvpnDlg::OnSysCommand(UINT nID, LPARAM lParam)
 			}
 
 			g_bIsAppExit = TRUE;
+
+			int iItemCount = this->m_list.GetItemCount();
+			VpnInfo *pInfo = NULL;
+			for (int i = 0; i < iItemCount; i++)
+			{			
+				pInfo = (VpnInfo *)(this->m_list.GetItemData(i));
+				if (pInfo != NULL)
+				{
+					delete pInfo;
+				}
+			}
 
 			for (int i = 3; i > 0; i--)
 			{
@@ -289,13 +316,14 @@ void CvpnDlg::OnBnClickedButton1()
 {
 	// TODO: 在此添加控件通知处理程序代码
 
-	//int	nItem = m_List.GetSelectionMark();
-	//if (nItem == -1)
-	//{
-	//	m_status = "没有找到任何可用的VPN服务器";
-	//	UpdateData(FALSE);
-	//	return;
-	//}
+	int	nItem = m_list.GetSelectionMark();
+	if (nItem == -1)
+	{
+		CString statusstr = "没有找到任何可用的VPN服务器！";
+		OutputString(statusstr.GetBuffer(0));
+		UpdateData(FALSE);
+		return;
+	}
 
 	if (NULL != g_TerminalEvent)
 	{
@@ -332,12 +360,7 @@ void CvpnDlg::OnBnClickedButton1()
 		VPNParams.hTerminalEvent = g_hDisconnect[0];
 		CString vpnname="myvpn";
 		UpdateData(TRUE);
-		//lstrcpy(VPNParams.szServer, m_ip.GetBuffer(0));
-		//获取ComboBox的当前值
-		int iPos = m_ip.GetCurSel();              //当前选中的元素索引
-		CString strip;
-		m_ip.GetLBText(m_ip.GetCurSel(), strip);    //当前选中的字符串
-		lstrcpy(VPNParams.szServer, strip);
+		lstrcpy(VPNParams.szServer, m_ip.GetBuffer(0));
 		lstrcpy(VPNParams.szUserName, m_username.GetBuffer(0));
 		lstrcpy(VPNParams.szPassword, m_password.GetBuffer(m_password.GetLength()));
 		lstrcpy(VPNParams.szDescription, vpnname.GetBuffer(0));
@@ -376,13 +399,11 @@ void CvpnDlg::ReadConfig(CString filepath)
 		}
 		while(file.getline(line,sizeof(line)))
 		{
-			m_ip.SetCurSel(0);
-
 			CString str;
 			str.Format("%s",line);
 			//ip开始的位置
 			size_t ip= str.Find("|");
-			m_ip.AddString(str.Left(ip));
+			m_ip = str.Left(ip);
 			CString str1=str.Right(str.GetLength()-ip-1);  //截取剩下的字符串
 			//username开始的位置
 			size_t uname=str1.Find("|");
@@ -423,7 +444,7 @@ void CvpnDlg::SaveConfig()
 // 初始化数据
 void CvpnDlg::InitData(void)
 {
-	//CString ip = "104.224.157.23";
+	//CString ip = "103.230.241.24";
 	//CString username = "testvpn";
 	//CString password = "123456";
 	//CString remark = "测试";
@@ -448,22 +469,39 @@ void CvpnDlg::InitData(void)
 	//	OutputString("删除失败！\n");
 	//}
 
-
+	this->m_list.DeleteAllItems();
 	CppSQLite3DB db;
 	db.open("VPN.db");
-	CppSQLite3Query query = db.execQuery("select rowid,* from info where 1=1 order by rowid");
+	CppSQLite3Query query = db.execQuery("select rowid,* from vpninfo where 1=1 order by rowid");
 	int i = 0;
 	while (!query.eof())
 	{
-		VpnInfo *pInfo = new VpnInfo;
-		ZeroMemory(pInfo, sizeof(VpnInfo));
-		pInfo->id = atoi(query.getStringField("rowid"));
-		sprintf(pInfo->ip, "%s", query.getStringField("ip"));
-		sprintf(pInfo->location , "%s", GetPosition((char *)query.getStringField("ip")));
-		sprintf(pInfo->user, "%s", query.getStringField("user"));
-		sprintf(pInfo->pass, "%s", query.getStringField("pass"));
-		sprintf(pInfo->remark, "%s", query.getStringField("remark"));
+		this->m_list.InsertItem(i, query.getStringField("rowid"));
+		this->m_list.SetItemText(i, 1, query.getStringField("ip"));
+		this->m_list.SetItemText(i, 2, GetPosition((char *)query.getStringField("ip")));
+		this->m_list.SetItemText(i, 4, (char *)query.getStringField("remark"));
+		VpnInfo *pVpnInfo = new VpnInfo;
+		ZeroMemory(pVpnInfo, sizeof(VpnInfo));
+		pVpnInfo->id = atoi(query.getStringField("rowid"));
+		sprintf(pVpnInfo->ip, "%s", query.getStringField("ip"));
+		sprintf(pVpnInfo->user, "%s", query.getStringField("user"));
+		sprintf(pVpnInfo->pass, "%s", query.getStringField("pass"));
+		this->m_list.SetItemData(i, (DWORD)pVpnInfo);
 		query.nextRow();
+		//默认值
+		if (i == 0)
+		{
+			//ip
+			m_ip = pVpnInfo->ip;
+			//user
+			m_username = pVpnInfo->user;
+			//password
+			m_password = pVpnInfo->pass;
+
+			SetDlgItemText(IDC_EDIT1, m_ip);
+			SetDlgItemText(IDC_EDIT2, m_username);
+			SetDlgItemText(IDC_EDIT3, m_password);
+		}
 		i++;
 	}
 	query.finalize();
@@ -489,7 +527,7 @@ CString CvpnDlg::GetPosition(char* lpIPAddr)
 // 添加记录
 int CvpnDlg::Add(LPSTR lpHostName, LPSTR lpUser, LPSTR lpPass, LPSTR lpRemark)
 {
-	char *sql = "insert into info (ip,user,pass,remark) values ('%s','%s','%s','%s')";
+	char *sql = "insert into vpninfo (ip,user,pass,remark) values ('%s','%s','%s','%s')";
 	char *lpSql = new char[4096];
 	ZeroMemory(lpSql, 4096);
 	sprintf(lpSql, sql, lpHostName, lpUser, lpPass, lpRemark);
@@ -507,7 +545,7 @@ int CvpnDlg::Del(int rowid)
 {
 	char *lpSql = new char[4096];
 	ZeroMemory(lpSql, 4096);
-	sprintf(lpSql, "delete from info where rowid=%d", rowid);
+	sprintf(lpSql, "delete from vpninfo where rowid=%d", rowid);
 	int result = 0;
 	CppSQLite3DB db;
 	db.open("VPN.db");
@@ -665,3 +703,118 @@ void CvpnDlg::OnCbnSelchangeCombo()
 	((CComboBox*)GetDlgItem(IDC_COMBO))->GetWindowText(strTemp);
 
 }
+
+
+void CvpnDlg::OnNMClickList2(NMHDR *pNMHDR, LRESULT *pResult)
+{
+	LPNMITEMACTIVATE pNMItemActivate = reinterpret_cast<LPNMITEMACTIVATE>(pNMHDR);
+	// TODO: 在此添加控件通知处理程序代码
+	if (this->m_list.GetSelectedCount() < 1)
+	{
+		return;
+	}
+	POSITION pos = this->m_list.GetFirstSelectedItemPosition();
+	VpnInfo *pInfo = NULL;
+	while (pos)
+	{
+		int nIdx = -1;
+		nIdx = this->m_list.GetNextSelectedItem(pos);
+		if (nIdx >= 0 && nIdx < this->m_list.GetItemCount())
+		{
+			pInfo = (VpnInfo *)(this->m_list.GetItemData(nIdx));
+			if (pInfo != NULL)
+			{
+
+				//this->m_hrascon = NULL;
+				//int result = ConenectVPN("YVPN连接", pInfo->user, pInfo->pass, pInfo->ip, &this->m_hrascon);
+				//pInfo = NULL;
+				//if (result != 0)
+				//{
+				//	char *temp = new char[1024];
+				//	ZeroMemory(temp, 1024);
+				//	sprintf(temp, "连接失败！错误代码：%d ...", result);
+				//	ShowInfo(temp);
+				//	delete temp;
+				//}
+
+				{
+					//ip
+					m_ip = pInfo->ip;
+					//user
+					m_username = pInfo->user;
+					//password
+					m_password = pInfo->pass;
+
+					SetDlgItemText(IDC_EDIT1, m_ip);
+					SetDlgItemText(IDC_EDIT2, m_username);
+					SetDlgItemText(IDC_EDIT3, m_password);
+				}
+
+			}
+		}
+	}
+
+	*pResult = 0;
+}
+
+void CvpnDlg::OnMenuAdd()
+{
+	// TODO: 在此添加命令处理程序代码
+	//AddItem dlg;
+	//if (dlg.DoModal() == 2)
+	//{
+	//	return;
+	//}
+	//int result = 0;
+	//result = this->Add(dlg.m_host.GetBuffer(), dlg.m_user.GetBuffer(), dlg.m_pass.GetBuffer(), dlg.m_remark.GetBuffer());
+	//if (result > 0)
+	//{
+	//	ShowInfo("添加成功！");
+	//	InitData();
+	//	return;
+	//}
+	//ShowInfo("添加失败！");
+}
+
+
+
+
+void CvpnDlg::OnMenuDel()
+{
+	// TODO: 在此添加命令处理程序代码
+	////this->Del(15);
+	//if (this->m_list.GetSelectedCount() < 1)
+	//{
+	//	return;
+	//}
+	//if (MessageBox("是否真的执行此操作？", "提示", MB_YESNO) == IDNO)
+	//{
+	//	return;
+	//}
+	//POSITION pos = this->m_list.GetFirstSelectedItemPosition();
+	//Info *pInfo = NULL;
+	//while (pos)
+	//{
+	//	int nIdx = -1;
+	//	nIdx = this->m_list.GetNextSelectedItem(pos);
+	//	if (nIdx >= 0 && nIdx < this->m_list.GetItemCount())
+	//	{
+	//		pInfo = (Info *)(this->m_list.GetItemData(nIdx));
+	//		if (pInfo != NULL)
+	//		{
+	//			int result = 0;
+	//			result = this->Del(pInfo->id);
+	//			if (result > 0)
+	//			{
+	//				ShowInfo("删除成功！");
+	//				InitData();
+	//			}
+	//			else
+	//			{
+	//				ShowInfo("删除失败！");
+	//			}
+	//		}
+	//	}
+	//}
+}
+

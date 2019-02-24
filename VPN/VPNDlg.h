@@ -59,14 +59,20 @@ public:
 	int Add(LPSTR lpHostName, LPSTR lpUser, LPSTR lpPass, LPSTR lpRemark);
 	// 删除记录
 	int Del(int rowid);
+
+	afx_msg void OnMenuAdd();
+	afx_msg void OnMenuDel();
+
 	//配置数据
 	bool VpnWebConfig();
 
 	afx_msg void OnBnClickedMfclink1();
 	afx_msg void OnBnClickedButton1();
-	CComboBox m_ip;
-	CString m_username;
-	CString m_password;
+	CListCtrl m_list;	//vpn列表	
+	CString m_ip;       //ip地址 地理位置 延时
+	CString m_username; //账号
+	CString m_password; //密码
+	CString m_remark;   //备注
 	TCHAR	m_szConfigFile[MAX_PATH];
 	afx_msg void OnBnClickedButton2();
 	// 记住密码
@@ -78,6 +84,8 @@ public:
 	// 设置当前状态
 	void SetStatus(CString StatusStr);
 	afx_msg void OnCbnSelchangeCombo();
+	afx_msg void OnLvnItemchangedList2(NMHDR *pNMHDR, LRESULT *pResult);
+	afx_msg void OnNMClickList2(NMHDR *pNMHDR, LRESULT *pResult);
 };
 
 #endif // !defined(AFX_VPNCLIENTDLG_H__E3DF5BD6_0E0A_4409_A50D_B1025AECCF43__INCLUDED_)
